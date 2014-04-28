@@ -1,0 +1,21 @@
+{
+  "name": "oz-bundle",
+  "version": "0.0.1",
+  "description": "Commonly-used tags bundled with Oz",
+  "dependencies": {
+    "treygriffith/oz": "^0.1.0",
+    "treygriffith/oz-attr": "^0.0.1",
+    "treygriffith/oz-each": "^0.0.1",
+    "treygriffith/oz-evt": "^0.0.1",
+    "treygriffith/oz-if": "^0.0.1",
+    "treygriffith/oz-scope": "^0.0.1",
+    "treygriffith/oz-text": "^0.0.1",
+    "treygriffith/oz-val": "^0.0.1"
+  },
+  "development": {
+  },
+  "scripts": [
+    "index.js"
+  ],
+  "main": "index.js"
+}
