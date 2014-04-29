@@ -91,6 +91,170 @@ module.exports = function(val){
 
 });
 
+require.register("component~clone@0.2.2", function (exports, module) {
+/**
+ * Module dependencies.
+ */
+
+var type;
+try {
+  type = require("component~type@1.0.0");
+} catch (_) {
+  type = require("component~type@1.0.0");
+}
+
+/**
+ * Module exports.
+ */
+
+module.exports = clone;
+
+/**
+ * Clones objects.
+ *
+ * @param {Mixed} any object
+ * @api public
+ */
+
+function clone(obj){
+  switch (type(obj)) {
+    case 'object':
+      var copy = {};
+      for (var key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          copy[key] = clone(obj[key]);
+        }
+      }
+      return copy;
+
+    case 'array':
+      var copy = new Array(obj.length);
+      for (var i = 0, l = obj.length; i < l; i++) {
+        copy[i] = clone(obj[i]);
+      }
+      return copy;
+
+    case 'regexp':
+      // from millermedeiros/amd-utils - MIT
+      var flags = '';
+      flags += obj.multiline ? 'm' : '';
+      flags += obj.global ? 'g' : '';
+      flags += obj.ignoreCase ? 'i' : '';
+      return new RegExp(obj.source, flags);
+
+    case 'date':
+      return new Date(obj.getTime());
+
+    default: // string, number, boolean, …
+      return obj;
+  }
+}
+
+});
+
+require.register("component~query@0.0.3", function (exports, module) {
+function one(selector, el) {
+  return el.querySelector(selector);
+}
+
+exports = module.exports = function(selector, el){
+  el = el || document;
+  return one(selector, el);
+};
+
+exports.all = function(selector, el){
+  el = el || document;
+  return el.querySelectorAll(selector);
+};
+
+exports.engine = function(obj){
+  if (!obj.one) throw new Error('.one callback required');
+  if (!obj.all) throw new Error('.all callback required');
+  one = obj.one;
+  exports.all = obj.all;
+  return exports;
+};
+
+
+});
+
+require.register("component~matches-selector@0.1.2", function (exports, module) {
+/**
+ * Module dependencies.
+ */
+
+var query = require("component~query@0.0.3");
+
+/**
+ * Element prototype.
+ */
+
+var proto = Element.prototype;
+
+/**
+ * Vendor function.
+ */
+
+var vendor = proto.matches
+  || proto.webkitMatchesSelector
+  || proto.mozMatchesSelector
+  || proto.msMatchesSelector
+  || proto.oMatchesSelector;
+
+/**
+ * Expose `match()`.
+ */
+
+module.exports = match;
+
+/**
+ * Match `el` to `selector`.
+ *
+ * @param {Element} el
+ * @param {String} selector
+ * @return {Boolean}
+ * @api public
+ */
+
+function match(el, selector) {
+  if (vendor) return vendor.call(el, selector);
+  var nodes = query.all(selector, el.parentNode);
+  for (var i = 0; i < nodes.length; ++i) {
+    if (nodes[i] == el) return true;
+  }
+  return false;
+}
+
+});
+
+require.register("treygriffith~closest@0.1.2", function (exports, module) {
+var matches = require("component~matches-selector@0.1.2")
+
+module.exports = function (element, selector, checkYoSelf, root) {
+  element = checkYoSelf ? {parentNode: element} : element
+
+  root = root || document
+
+  // Make sure `element !== document` and `element != null`
+  // otherwise we get an illegal invocation
+  while ((element = element.parentNode) && element !== document) {
+
+    // document fragments cause illegal invocation
+    // in matches, so we skip them
+    if(element.nodeType === 11)
+      continue
+  
+    if (matches(element, selector))
+      return element
+    // After `matches` on the edge case that
+    // the selector matches the root
+    // (when the root is not the document)
+    if (element === root)
+      return  
+  }
+}
+});
+
 require.register("component~props@1.1.2", function (exports, module) {
 /**
  * Global Names
@@ -397,156 +561,6 @@ function array(obj, fn, ctx) {
 
 });
 
-require.register("ianstormtaylor~to-no-case@0.1.0", function (exports, module) {
-
-/**
- * Expose `toNoCase`.
- */
-
-module.exports = toNoCase;
-
-
-/**
- * Test whether a string is camel-case.
- */
-
-var hasSpace = /\s/;
-var hasCamel = /[a-z][A-Z]/;
-var hasSeparator = /[\W_]/;
-
-
-/**
- * Remove any starting case from a `string`, like camel or snake, but keep
- * spaces and punctuation that may be important otherwise.
- *
- * @param {String} string
- * @return {String}
- */
-
-function toNoCase (string) {
-  if (hasSpace.test(string)) return string.toLowerCase();
-
-  if (hasSeparator.test(string)) string = unseparate(string);
-  if (hasCamel.test(string)) string = uncamelize(string);
-  return string.toLowerCase();
-}
-
-
-/**
- * Separator splitter.
- */
-
-var separatorSplitter = /[\W_]+(.|$)/g;
-
-
-/**
- * Un-separate a `string`.
- *
- * @param {String} string
- * @return {String}
- */
-
-function unseparate (string) {
-  return string.replace(separatorSplitter, function (m, next) {
-    return next ? ' ' + next : '';
-  });
-}
-
-
-/**
- * Camelcase splitter.
- */
-
-var camelSplitter = /(.)([A-Z]+)/g;
-
-
-/**
- * Un-camelcase a `string`.
- *
- * @param {String} string
- * @return {String}
- */
-
-function uncamelize (string) {
-  return string.replace(camelSplitter, function (m, previous, uppers) {
-    return previous + ' ' + uppers.toLowerCase().split('').join(' ');
-  });
-}
-});
-
-require.register("ianstormtaylor~to-space-case@0.1.2", function (exports, module) {
-
-var clean = require("ianstormtaylor~to-no-case@0.1.0");
-
-
-/**
- * Expose `toSpaceCase`.
- */
-
-module.exports = toSpaceCase;
-
-
-/**
- * Convert a `string` to space case.
- *
- * @param {String} string
- * @return {String}
- */
-
-
-function toSpaceCase (string) {
-  return clean(string).replace(/[\W_]+(.|$)/g, function (matches, match) {
-    return match ? ' ' + match : '';
-  });
-}
-});
-
-require.register("ianstormtaylor~to-camel-case@0.2.1", function (exports, module) {
-
-var toSpace = require("ianstormtaylor~to-space-case@0.1.2");
-
-
-/**
- * Expose `toCamelCase`.
- */
-
-module.exports = toCamelCase;
-
-
-/**
- * Convert a `string` to camel case.
- *
- * @param {String} string
- * @return {String}
- */
-
-
-function toCamelCase (string) {
-  return toSpace(string).replace(/\s(\w)/g, function (matches, letter) {
-    return letter.toUpperCase();
-  });
-}
-});
-
-require.register("component~within-document@0.0.1", function (exports, module) {
-
-/**
- * Check if `el` is within the document.
- *
- * @param {Element} el
- * @return {Boolean}
- * @api private
- */
-
-module.exports = function(el) {
-  var node = el;
-  while (node = node.parentNode) {
-    if (node == document) return true;
-  }
-  return false;
-};
-});
-
 require.register("visionmedia~debug@0.8.1", function (exports, module) {
 
 /**
@@ -686,6 +700,157 @@ try {
   if (window.localStorage) debug.enable(localStorage.debug);
 } catch(e){}
 
+});
+
+require.register("ianstormtaylor~to-no-case@0.1.0", function (exports, module) {
+
+/**
+ * Expose `toNoCase`.
+ */
+
+module.exports = toNoCase;
+
+
+/**
+ * Test whether a string is camel-case.
+ */
+
+var hasSpace = /\s/;
+var hasCamel = /[a-z][A-Z]/;
+var hasSeparator = /[\W_]/;
+
+
+/**
+ * Remove any starting case from a `string`, like camel or snake, but keep
+ * spaces and punctuation that may be important otherwise.
+ *
+ * @param {String} string
+ * @return {String}
+ */
+
+function toNoCase (string) {
+  if (hasSpace.test(string)) return string.toLowerCase();
+
+  if (hasSeparator.test(string)) string = unseparate(string);
+  if (hasCamel.test(string)) string = uncamelize(string);
+  return string.toLowerCase();
+}
+
+
+/**
+ * Separator splitter.
+ */
+
+var separatorSplitter = /[\W_]+(.|$)/g;
+
+
+/**
+ * Un-separate a `string`.
+ *
+ * @param {String} string
+ * @return {String}
+ */
+
+function unseparate (string) {
+  return string.replace(separatorSplitter, function (m, next) {
+    return next ? ' ' + next : '';
+  });
+}
+
+
+/**
+ * Camelcase splitter.
+ */
+
+var camelSplitter = /(.)([A-Z]+)/g;
+
+
+/**
+ * Un-camelcase a `string`.
+ *
+ * @param {String} string
+ * @return {String}
+ */
+
+function uncamelize (string) {
+  return string.replace(camelSplitter, function (m, previous, uppers) {
+    return previous + ' ' + uppers.toLowerCase().split('').join(' ');
+  });
+}
+});
+
+require.register("ianstormtaylor~to-space-case@0.1.2", function (exports, module) {
+
+var clean = require("ianstormtaylor~to-no-case@0.1.0");
+
+
+/**
+ * Expose `toSpaceCase`.
+ */
+
+module.exports = toSpaceCase;
+
+
+/**
+ * Convert a `string` to space case.
+ *
+ * @param {String} string
+ * @return {String}
+ */
+
+
+function toSpaceCase (string) {
+  return clean(string).replace(/[\W_]+(.|$)/g, function (matches, match) {
+    return match ? ' ' + match : '';
+  });
+}
+});
+
+require.register("ianstormtaylor~to-camel-case@0.2.1", function (exports, module) {
+
+var toSpace = require("ianstormtaylor~to-space-case@0.1.2");
+
+
+/**
+ * Expose `toCamelCase`.
+ */
+
+module.exports = toCamelCase;
+
+
+/**
+ * Convert a `string` to camel case.
+ *
+ * @param {String} string
+ * @return {String}
+ */
+
+
+function toCamelCase (string) {
+  return toSpace(string).replace(/\s(\w)/g, function (matches, letter) {
+    return letter.toUpperCase();
+  });
+}
+
+});
+
+require.register("component~within-document@0.0.1", function (exports, module) {
+
+/**
+ * Check if `el` is within the document.
+ *
+ * @param {Element} el
+ * @return {Boolean}
+ * @api private
+ */
+
+module.exports = function(el) {
+  var node = el;
+  while (node = node.parentNode) {
+    if (node == document) return true;
+  }
+  return false;
+};
 });
 
 require.register("treygriffith~css@0.0.6", function (exports, module) {
@@ -832,7 +997,6 @@ function isNumeric(obj) {
   return !isNan(parseFloat(obj)) && isFinite(obj);
 }
 
-
 });
 
 require.register("treygriffith~css@0.0.6/lib/prop.js", function (exports, module) {
@@ -872,7 +1036,6 @@ function prop(prop, style) {
   debug('transform property: %s => %s', prop, style);
   return prop;
 }
-
 
 });
 
@@ -1185,7 +1348,6 @@ function styles(el) {
   }
 }
 
-
 });
 
 require.register("treygriffith~css@0.0.6/lib/vendor.js", function (exports, module) {
@@ -1411,171 +1573,6 @@ function get(el, prop, extra) {
 
 });
 
-require.register("component~clone@0.2.2", function (exports, module) {
-/**
- * Module dependencies.
- */
-
-var type;
-try {
-  type = require("component~type@1.0.0");
-} catch (_) {
-  type = require("component~type@1.0.0");
-}
-
-/**
- * Module exports.
- */
-
-module.exports = clone;
-
-/**
- * Clones objects.
- *
- * @param {Mixed} any object
- * @api public
- */
-
-function clone(obj){
-  switch (type(obj)) {
-    case 'object':
-      var copy = {};
-      for (var key in obj) {
-        if (obj.hasOwnProperty(key)) {
-          copy[key] = clone(obj[key]);
-        }
-      }
-      return copy;
-
-    case 'array':
-      var copy = new Array(obj.length);
-      for (var i = 0, l = obj.length; i < l; i++) {
-        copy[i] = clone(obj[i]);
-      }
-      return copy;
-
-    case 'regexp':
-      // from millermedeiros/amd-utils - MIT
-      var flags = '';
-      flags += obj.multiline ? 'm' : '';
-      flags += obj.global ? 'g' : '';
-      flags += obj.ignoreCase ? 'i' : '';
-      return new RegExp(obj.source, flags);
-
-    case 'date':
-      return new Date(obj.getTime());
-
-    default: // string, number, boolean, …
-      return obj;
-  }
-}
-
-});
-
-require.register("component~query@0.0.3", function (exports, module) {
-function one(selector, el) {
-  return el.querySelector(selector);
-}
-
-exports = module.exports = function(selector, el){
-  el = el || document;
-  return one(selector, el);
-};
-
-exports.all = function(selector, el){
-  el = el || document;
-  return el.querySelectorAll(selector);
-};
-
-exports.engine = function(obj){
-  if (!obj.one) throw new Error('.one callback required');
-  if (!obj.all) throw new Error('.all callback required');
-  one = obj.one;
-  exports.all = obj.all;
-  return exports;
-};
-
-
-});
-
-require.register("component~matches-selector@0.1.2", function (exports, module) {
-/**
- * Module dependencies.
- */
-
-var query = require("component~query@0.0.3");
-
-/**
- * Element prototype.
- */
-
-var proto = Element.prototype;
-
-/**
- * Vendor function.
- */
-
-var vendor = proto.matches
-  || proto.webkitMatchesSelector
-  || proto.mozMatchesSelector
-  || proto.msMatchesSelector
-  || proto.oMatchesSelector;
-
-/**
- * Expose `match()`.
- */
-
-module.exports = match;
-
-/**
- * Match `el` to `selector`.
- *
- * @param {Element} el
- * @param {String} selector
- * @return {Boolean}
- * @api public
- */
-
-function match(el, selector) {
-  if (vendor) return vendor.call(el, selector);
-  var nodes = query.all(selector, el.parentNode);
-  for (var i = 0; i < nodes.length; ++i) {
-    if (nodes[i] == el) return true;
-  }
-  return false;
-}
-
-
-});
-
-require.register("treygriffith~closest@0.1.2", function (exports, module) {
-var matches = require("component~matches-selector@0.1.2")
-
-module.exports = function (element, selector, checkYoSelf, root) {
-  element = checkYoSelf ? {parentNode: element} : element
-
-  root = root || document
-
-  // Make sure `element !== document` and `element != null`
-  // otherwise we get an illegal invocation
-  while ((element = element.parentNode) && element !== document) {
-
-    // document fragments cause illegal invocation
-    // in matches, so we skip them
-    if(element.nodeType === 11)
-      continue
-  
-    if (matches(element, selector))
-      return element
-    // After `matches` on the edge case that
-    // the selector matches the root
-    // (when the root is not the document)
-    if (element === root)
-      return  
-  }
-}
-});
-
 require.register("matthewp~attr@master", function (exports, module) {
 /*
 ** Fallback for older IE without get/setAttribute
@@ -1621,7 +1618,6 @@ module.exports = function(el) {
 };
 
 module.exports.Attr = Attr;
-
 
 });
 
@@ -1730,7 +1726,6 @@ function parse(html) {
 
   return fragment;
 }
-
 
 });
 
@@ -2099,15 +2094,59 @@ function findWithSelf(el, selector) {
   
   return selected;
 }
+});
+
+require.register("treygriffith~matches-attribute@0.0.1", function (exports, module) {
+/**
+ * Module dependencies
+ */
+var matches = require("component~matches-selector@0.1.2");
+
+/**
+ * Exports
+ */
+module.exports = matchesAttribute;
+
+/**
+ * Find if an attribute name is present on an element
+ * @param  {DOM} el   DOM node to test
+ * @param  {String} attr Name of an attribute to test for. Supports * for a wildcard.
+ * @return {Array | Boolean}      Array string names of the attributes found or false on failure.
+ */
+function matchesAttribute(el, attr) {
+
+  // if there is no glob, we do a regular search
+  if(!~attr.indexOf('*')) {
+
+    if(matches(el, '[' + attr + ']')) {
+      return [attr];
+    }
+
+    return false;
+  }
+
+  // get it ready to be a RE
+  attr = '^' + attr.replace('*', '.+').replace('-', '\\-') + '$';
+  var re = new RegExp(attr)
+    , attrs = el.attributes
+    , found = [];
+
+  for(var i=0; i<attrs.length; i++) {
+    if(re.test(attrs[i].nodeName)) {
+      found.push(attrs[i].nodeName);
+    }
+  }
+
+  return found.length ? found : false;
+}
 
 });
 
-require.register("treygriffith~oz@0.1.0-alpha.1", function (exports, module) {
-module.exports = require("treygriffith~oz@0.1.0-alpha.1/lib/oz.js");
-
+require.register("treygriffith~oz@0.2.0-alpha.3", function (exports, module) {
+module.exports = require("treygriffith~oz@0.2.0-alpha.3/lib/oz.js");
 });
 
-require.register("treygriffith~oz@0.1.0-alpha.1/lib/oz.js", function (exports, module) {
+require.register("treygriffith~oz@0.2.0-alpha.3/lib/oz.js", function (exports, module) {
 /**
  * Module dependencies
  */
@@ -2120,7 +2159,9 @@ var attr = require("matthewp~attr@master")
   , Emitter = require("component~emitter@1.1.2")
   , Events = require("treygriffith~events@0.1.0")
   , findWithSelf = require("treygriffith~find-with-self@0.1.0")
-  , utils = require("treygriffith~oz@0.1.0-alpha.1/lib/utils.js");
+  , matches = require("component~matches-selector@0.1.2")
+  , matchesAttr = require("treygriffith~matches-attribute@0.0.1")
+  , utils = require("treygriffith~oz@0.2.0-alpha.3/lib/utils.js");
 
 /**
  * Exports
@@ -2136,11 +2177,7 @@ module.exports = Oz;
  * properties:
  *   thisSymbol: Symbol used in template declarations to indicate that the current context is to be used as the value.
  *     default: '@'
- *   separator: Symbol used to separate attributes
- *     default: ';'
- *   equals: Symbol used to separate attribute name from value
- *     default: ':'
- *   template: DOM element(s) that represent the template to be rendered
+ *   template: DOM element(s) that represent the template to be rendered or a string
  *   tags: Object defining how tags are notated and rendered
  *   cache: internal cache of already rendered DOM elements
  *   rendered: the template's output, for use in updates
@@ -2149,8 +2186,6 @@ module.exports = Oz;
 function Oz(template) {
   if(!(this instanceof Oz)) return new Oz(template);
   this.thisSymbol = '@';
-  this.equals = ':';
-  this.separator = ';';
   this.template = typeof template === 'string' ? domify(template) : template;
   this.tags = clone(Oz.tags);
   this.events = new Events();
@@ -2162,14 +2197,15 @@ Emitter(Oz.prototype);
 /**
  * Template render
  * @api public
- * @param  {Object} ctx Context in which to render the template
- * @return {DOMFragment}     Document fragment containing rendered nodes
+ * @param  {Object}       ctx   Context in which to render the template
+ * @return {DOMFragment}        Document fragment containing rendered nodes
  */
 Oz.prototype.render = function (ctx) {
   var self = this
     , template = this.template.cloneNode(true)
     , fragment;
 
+  // make sure that the template is encased in a documentFragment
   if(isFragment(template)) {
     fragment = template;
   } else {
@@ -2177,10 +2213,18 @@ Oz.prototype.render = function (ctx) {
     fragment.appendChild(template);
   }
 
+  // store an array of our rendered templates so we can update it later
   this.rendered = children(fragment);
 
+  // do the actual data entry into the template
   this.update(ctx);
 
+  // update the rendered array - if new siblings were inserted, we would lose
+  // them otherwise
+  this.rendered = children(fragment);
+
+  // the fragment can be appended into the doc easily
+  // and then it disappears. It's a good transport.
   return fragment;
 };
 
@@ -2188,7 +2232,7 @@ Oz.prototype.render = function (ctx) {
  * Update template
  * @api public
  * @param  {Object} ctx Context in which to render the template
- * @return {Array}     Array of rendered elements corresponding to the updated (in-place) template
+ * @return {Array}      Array of rendered elements corresponding to the updated (in-place) template
  */
 Oz.prototype.update = function (ctx) {
   var self = this;
@@ -2207,6 +2251,8 @@ Oz.prototype.update = function (ctx) {
 /**
  * Update coming from the template
  * @api public
+ * @param {String} scope String representation of the scope tree
+ * @param {Mixed}  val   Value that changed
  */
 Oz.prototype.change = function (scope, val) {
   this.emit('change:'+scope, val); // triggers `.on('change:person.name')` with `'Brian'`
@@ -2216,58 +2262,68 @@ Oz.prototype.change = function (scope, val) {
 /**
  * Internal iterative rendering
  * @api private
- * @param  {DOM} template    DOM node to be rendered
- * @param  {Object} ctx         Context in which the template should be rendered
- * @param  {Boolean} ignoreCache Flag determining if this template should be re-rendered if it has already been rendered.
- *                               This is to allow tags that change scope (oz and oz-each) to make sure that the subordinate nodes are rendered properly
- * @return {DOM}             Rendered template
+ * @param  {DOM}    el    DOM node to be rendered
+ * @param  {Object} ctx   Context in which the template should be rendered
+ * @param  {String} scope scope tree representation in dot notation.
+ * @return {DOM}          Rendered template
  */
-Oz.prototype._render = function (template, ctx, scope, ignoreCache) {
-  var self = this
-    , tags = this.tags
-    , thisSymbol = this.thisSymbol
-    , tagKeys = Object.keys(tags)
-    , tmp;
-
+Oz.prototype._render = function (el, ctx, scope) {
   scope = scope || '';
 
-  // NOTE: what impact does this caching have on multiple tags on the same html element?
-  if(~this.cache.indexOf(template) && !ignoreCache) {
-    return this.cache[this.cache.indexOf(template)];
-  }
+  var self = this
+    , _scope = scope
+    , _ctx = ctx
+    , tags = this.tags
+    , tagKeys = Object.keys(tags)
+    , keepRendering = true;
 
+  // we don't need to render anything if there are no tags
+  if(!tagKeys.length) return el;
+
+  // cycle through all the tags
   tagKeys.forEach(function (key) {
     // TODO: add compatibility for data-* attributes
-    var selector = '[' + key + ']' + (tags[key].not ? ':not(' + tags[key].not + ')' : '');
-    
-    findWithSelf(template, selector).filter(filterRoot(tags, template)).forEach(function (el) {
-      var prop = attr(el).get(key)
-        , next = function (_el, _ctx, _scope) {
-          // replace empty arguments with defaults
-          // fall through for lower argument lengths to pick up all the defaults
-          switch(arguments.length) {
-            case 0:
-              _el = el;
-            case 1:
-              _ctx = ctx;
-            case 2:
-              _scope = scope;
-          }
+    var attrs = matchesAttr(el, key);
 
-          // render this element's children
-          children(_el).forEach(function (child) {
-            // ignore cache on context change
-            self._render(child, _ctx, _scope, (_scope !== scope && _ctx !== ctx));
-          });
+    // this tag wasn't a match
+    if(!attrs) return;
+
+    attrs.forEach(function (name) {
+
+      var prop = attr(el).get(name)
+        , ret
+        , raw = {
+          ctx: ctx,
+          prop: prop,
+          scope: scope,
+          name: name
         };
 
-      tags[key].render.call(self, el, ctx, prop, scope, next);
+      // the function should return either null or a string indicating
+      // the new scope which affects this element's children.
+      // Tags CAN overwrite each other, so you shouldn't use two tags
+      // that change scope on the same element.
+      // If the function returns false, the child nodes will not be
+      // rendered.
+      ret = tags[key].call(self, el, self.get(ctx, prop), self.scope(scope, prop), raw);
+
+      if(ret) {
+        _scope = ret;
+        _ctx = self.get(self.ctx, _scope);
+      } else if(ret === false) {
+        keepRendering = false;
+      }
     });
   });
 
-  this.cache.push(template);
+  if(keepRendering) {
+    // render this element's children
+    children(el).forEach(function (child) {
+      self._render(child, _ctx, _scope);
+    });
+  }
 
-  return template;
+  return el;
 };
 
 /**
@@ -2281,7 +2337,9 @@ Oz.render = function (template, ctx) {
   return (new Oz(template)).render(ctx);
 };
 
-
+/**
+ * Global tags, to be used for all new instances
+ */
 Oz.tags = {};
 
 /**
@@ -2289,24 +2347,20 @@ Oz.tags = {};
  * @api public
  * @param {String} name html attribute name that denotes this tag and stores its value
  * @param {Function} render evaluated when a node is rendered or updated.
- * @param {String} not Optional CSS selector that describes which nodes with `attr` should be ignored when rendering or updating
- *
- * Render should accept 5 arguments:
- *   el: DOM node currently rendering
- *   ctx: Object - describes the the context that this node is being rendered in
- *   prop: String - the value of the attribute tag
- *   scope: String - represents the current context tree (e.g. "people.1.name")
- *   next: Function - should be evaluated after the node has been rendered with 3 arguments:
- *     el: the element that has been rendered - default: current el
- *     ctx: the context of this `el`'s children - default: current context
- *     scope: the scope of this `el`'s children - default: current scope
+ * 
+ * Render can accept up to 4 arguments:
+ *   el: DOM node currently rendering (e.g <div oz-text="name"></div>)
+ *   val: the value of the context with the current property (e.g. "Brian")
+ *   scope: the current scope chain with the current property (e.g. "people.1.name")
+ *   raw: the Raw paramters that this render was called with:
+ *     ctx: Object - describes the the context that this node is
+ *                   being rendered in (e.g. { name: "Brian" })
+ *     prop: String - the value of the attribute tag (e.g. "name")
+ *     scope: String - represents the current context tree (e.g. "people.1.name")
  */
-Oz.prototype.tag = Oz.tag = function (name, render, not) {
+Oz.prototype.tag = Oz.tag = function (name, render) {
   if(arguments.length > 1) {
-    this.tags[name] = {
-      render: render,
-      not: not
-    };
+    this.tags[name] = render;
   }
 
   return this.tags[name];
@@ -2336,15 +2390,13 @@ function unbindAll(events, el) {
   });
 }
 
-
 // check if the DOM node is a document fragment
 function isFragment(el) {
   return el.nodeType === 11;
 }
 
 // filter nodes that are not at the top level of tags
-function filterRoot(tags, root) {
-  var tagKeys = Object.keys(tags);
+function filterRoot(tagKeys, root) {
 
   return function (el) {
     for(var i=0; i<tagKeys.length; i++) {
@@ -2360,7 +2412,7 @@ function filterRoot(tags, root) {
 
 });
 
-require.register("treygriffith~oz@0.1.0-alpha.1/lib/utils.js", function (exports, module) {
+require.register("treygriffith~oz@0.2.0-alpha.3/lib/utils.js", function (exports, module) {
 /**
  * Dependencies
  */
@@ -2407,24 +2459,6 @@ exports.scope = function (scope, prop) {
   return scopes.join('.');
 };
 
-// split a property into its constituent parts - similar to inline style declarations
-exports.split = function (prop, fn) {
-  var sep = this.separator
-    , eq = this.equals;
-
-  // split into separate property:value pairs
-  prop.split(sep).forEach(function (prop) {
-    if(!prop) return;
-
-    // split the pairs into [prop, value]
-    var parts = prop.split(eq).map(function (str) {
-      return str.trim();
-    });
-
-    fn(parts[0], parts[1]);
-  });
-};
-
 // hide element
 exports.hide = function (el) {
   css(el, 'display', 'none');
@@ -2437,7 +2471,7 @@ exports.show = function (el) {
 
 });
 
-require.register("treygriffith~oz-attr@0.0.1", function (exports, module) {
+require.register("treygriffith~oz-attr@0.1.0", function (exports, module) {
 /**
  * Module dependencies
  */
@@ -2447,28 +2481,24 @@ var attr = require("matthewp~attr@master");
  * Export plugin
  */
 module.exports = function (Oz) {
-  Oz.tag('oz-attr', render);
+  Oz.tag('oz-attr-*', render);
 };
 
 module.exports.render = render;
 
 /**
  * Render an attribute
- * template: <img oz-attr="src:mysrc;class:myclass" />
+ * template: <img oz-attr-src="mysrc" oz-attr-class="myclass" />
  * context: { mysrc: "something.jpg", myclass: "photo" }
  * output: <img src="something.jpg" class="photo" />
  */
 
-function render (el, ctx, prop, scope, next) {
-  var self = this;
+function render (el, val, scope, raw) {
+  var name = raw.name.slice('oz-attr-'.length);
 
-  this.split(prop, function (name, val) {
-    val = val != null ? self.get(ctx, val) : null;
-
-    if(attr(el).get(name) !== val) attr(el).set(name, val);
-  });
-
-  next();
+  if(attr(el).get(name) !== val) {
+    attr(el).set(name, val);
+  }
 }
 
 });
@@ -2483,7 +2513,7 @@ module.exports = function (el, selector) {
 }
 });
 
-require.register("treygriffith~oz-each@0.0.1", function (exports, module) {
+require.register("treygriffith~oz-each@0.2.0", function (exports, module) {
 /**
  * Module dependencies
  */
@@ -2494,10 +2524,12 @@ var attr = require("matthewp~attr@master")
  * Export plugin
  */
 module.exports = function (Oz) {
-  Oz.tag('oz-each', render, '[oz-each-index]');
+  Oz.tag('oz-each', render);
 };
 
 module.exports.render = render;
+
+var index = 'oz-each-index';
 
 /**
  * Iterate over array-like objects and namespace the resulting nodes to the value iterated over
@@ -2507,84 +2539,93 @@ module.exports.render = render;
  *         <div oz-each="people" oz-each-index="1"><p oz-text="name">Brian</p></div>
  */
 
-function render (el, ctx, prop, scope, next) {
+function render (el, val, scope, raw) {
 
-  var newEl
-    , existing = {}
-    , after
-    , val = this.get(ctx, prop);
+  if(attr(el).get(index) == undefined || !val) {
 
-  // nothing to do if there is no array at all
-  if(!val) return this.hide(el);
+    // starter node
+    if(val && val.length) {
+      attr(el).set(index, 0);
+      this.show(el);
 
-  this.show(el);
+      // render it again now that it has an index
+      this._render(el, raw.ctx, raw.scope);
 
-  // find all the existing elements
-  siblings(el, '[oz-each-index]').forEach(function (el, i) {
+    }
 
-    // remove elements that are no longer around
-    if(i >= val.length) return el.parentNode.removeChild(el);
+    this.hide(el);
 
-    // keep track of the existing elements
-    existing[i] = el;
-  });
-
-  // use a for loop instead of `.forEach` to allow array-like values with a length property
-  for(var i=0; i<val.length; i++) {
-
-    after = existing[i + 1] || el;
-    newEl = existing[i] || el.cloneNode(true);
-
-    // we need to be able to reference this element later
-    attr(newEl).set('oz-each-index', i);
-
-    // insert in the correct ordering
-    after.parentNode.insertBefore(newEl, after);
-
-    next(newEl, val[i], this.scope(scope, prop + '.' + i));
+    // don't render children
+    return false;
   }
 
-  // hide template element
-  this.hide(el);
+  // existing node, get index
+  var i = parseInt(attr(el).get(index), 10);
+
+  if(i >= val.length) {
+    // this node needs to go away
+    if(i > 0) {
+      el.parentNode.removeChild(el);
+    } else {
+      // don't remove the zero element - it will be our new starter
+      attr(el).set(index, '');
+      this.hide(el);
+    }
+
+  } else if(i < (val.length - 1) && siblings(el, '[' + index + '="' + (i+1) + '"]').length === 0) {
+    // we need more nodes
+    // only let the last node perform this operation
+    // render the newly created nodes - they'll be skipped otherwise
+    this._render(addNode(el, i+1, this.show), raw.ctx, raw.scope);
+  }
+
+  // scope down the children
+  return this.scope(scope, i);
+}
+
+function addNode(el, n, show) {
+  var newEl = el.cloneNode(true);
+  show(newEl);
+
+  attr(newEl).set(index, n);
+
+  el.parentNode.insertBefore(newEl, el.nextSibling);
+
+  return newEl;
 }
 
 
 });
 
-require.register("treygriffith~oz-evt@0.0.1", function (exports, module) {
+require.register("treygriffith~oz-evt@0.1.0", function (exports, module) {
 /**
  * Export plugin
  */
 module.exports = function (Oz) {
-  Oz.tag('oz-evt', render);
+  Oz.tag('oz-evt-*', render);
 };
 
 module.exports.render = render;
 
 /**
  * Listen for DOM events
- * template: <div oz-evt="click:save"></div>
+ * template: <div oz-evt-click="save"></div>
  * output: template.on('save', fn); // fired when <div> is clicked
  */
 
-function render (el, ctx, prop, scope, next) {
+function render (el, val, scope, raw) {
+  var name = raw.name.slice('oz-evt-'.length)
+    , self = this;
 
-  var self = this;
-
-  this.split(prop, function (name, val) {
-
-    self.events.bind(el, name, function (e) {
-      self.emit(val, el, e, ctx);
-    });
+  this.events.bind(el, name, function (e) {
+    self.emit(raw.prop, el, e, raw.ctx);
   });
-
-  next();
 }
 
 
 });
 
-require.register("treygriffith~oz-if@0.0.1", function (exports, module) {
+require.register("treygriffith~oz-if@0.1.0", function (exports, module) {
 /**
  * Export plugin
  */
@@ -2601,23 +2642,19 @@ module.exports.render = render;
  * output: <div oz-if="person.active" style="display:none"></div>
  */
 
-function render (el, ctx, prop, scope, next) {
-
-  var val = this.get(ctx, prop);
+function render (el, val) {
 
   if(!val || (Array.isArray(val) && val.length === 0)) {
     this.hide(el);
   } else {
     this.show(el);
   }
-
-  next();
 }
 
 
 });
 
-require.register("treygriffith~oz-scope@0.0.1", function (exports, module) {
+require.register("treygriffith~oz-scope@0.1.1", function (exports, module) {
 /**
  * Export plugin
  */
@@ -2634,10 +2671,7 @@ module.exports.render = render;
  * output: <div oz="person"><p oz-text="name">Tobi</p></div>
  */
 
-function render (el, ctx, prop, scope, next) {
-
-  var self = this
-    , val = this.get(ctx, prop);
+function render (el, val, scope) {
 
   if(!val) {
     this.hide(el);
@@ -2645,7 +2679,7 @@ function render (el, ctx, prop, scope, next) {
     this.show(el);
   }
 
-  next(el, val, this.scope(scope, prop));
+  return scope;
 }
 
 
@@ -2664,7 +2698,7 @@ module.exports = function (el, val) {
 
 });
 
-require.register("treygriffith~oz-text@0.0.1", function (exports, module) {
+require.register("treygriffith~oz-text@0.1.0", function (exports, module) {
 /**
  * Module dependencies
  */
@@ -2686,13 +2720,9 @@ module.exports.render = render;
  * output: <div oz-text="person.name">Tobi</div>
  */
 
-function render (el, ctx, prop, scope, next) {
-
-  var val = this.get(ctx, prop) || '';
+function render (el, val) {
 
   if(val !== undefined) text(el, String(val));
-
-  next();
 }
 
 
@@ -2797,7 +2827,7 @@ function type(el) {
 
 });
 
-require.register("treygriffith~oz-val@0.0.1", function (exports, module) {
+require.register("treygriffith~oz-val@0.1.0", function (exports, module) {
 /**
  * Module dependencies
  */
@@ -2821,20 +2851,17 @@ module.exports.render = render;
  */
 // TODO: handle form elements like checkboxes, radio buttons
 
-function render (el, ctx, prop, scope, next) {
+function render (el, val, scope) {
 
-  var val = this.get(ctx, prop)
-    , self = this;
+  var change = this.change.bind(this);
 
   // set form value
   if(val !== undefined) value(el, val);
 
   // listen for changes to values
   onChange(this.events, el, function (val) {
-    self.change(self.scope(scope, prop), val);
+    change(scope, val);
   });
-
-  next();
 }
 
 // bind an element to all potential `change` events, but only trigger when content changes
@@ -2858,14 +2885,14 @@ require.register("oz-bundle", function (exports, module) {
 /**
  * Module dependencies
  */
-var Oz = require("treygriffith~oz@0.1.0-alpha.1")
-  , attrTag = require("treygriffith~oz-attr@0.0.1")
-  , eachTag = require("treygriffith~oz-each@0.0.1")
-  , evtTag = require("treygriffith~oz-evt@0.0.1")
-  , ifTag = require("treygriffith~oz-if@0.0.1")
-  , scopeTag = require("treygriffith~oz-scope@0.0.1")
-  , textTag = require("treygriffith~oz-text@0.0.1")
-  , valTag = require("treygriffith~oz-val@0.0.1");
+var Oz = require("treygriffith~oz@0.2.0-alpha.3")
+  , attrTag = require("treygriffith~oz-attr@0.1.0")
+  , eachTag = require("treygriffith~oz-each@0.2.0")
+  , evtTag = require("treygriffith~oz-evt@0.1.0")
+  , ifTag = require("treygriffith~oz-if@0.1.0")
+  , scopeTag = require("treygriffith~oz-scope@0.1.1")
+  , textTag = require("treygriffith~oz-text@0.1.0")
+  , valTag = require("treygriffith~oz-val@0.1.0");
 
 /**
  * Add plugins.
